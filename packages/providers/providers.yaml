@@ -1470,6 +1470,18 @@ a-leads:
             example: a3f8b2e1********************d9c4
             pattern: '^[a-f0-9]{32}$'
 
+anarlog-mcp:
+    display_name: Anarlog (MCP)
+    categories:
+        - mcp
+    auth_mode: MCP_OAUTH2_GENERIC
+    mcp_server_url: https://api.anarlog.so/mcp
+    proxy:
+        base_url: https://api.anarlog.so/mcp
+        headers:
+            accept: application/json,text/event-stream
+    docs: https://nango.dev/docs/api-integrations/anarlog-mcp
+
 anrok:
     display_name: Anrok
     categories:
@@ -23012,6 +23024,49 @@ shortcut:
             type: string
             title: API Key
             description: The API key for your Shortcut account
+
+simpplr:
+    display_name: Simpplr
+    categories:
+        - knowledge-base
+        - productivity
+    auth_mode: OAUTH2_CC
+    token_url: https://platform.${connectionConfig.region}.simpplr.com/v1/identity/oauth/token
+    body_format: json
+    token_params:
+        grant_type: client_credentials
+    proxy:
+        base_url: https://platform.${connectionConfig.region}.simpplr.com
+    docs: https://nango.dev/docs/api-integrations/simpplr
+    docs_connect: https://nango.dev/docs/api-integrations/simpplr/connect
+    connection_config:
+        region:
+            type: string
+            title: Region
+            description: The region your Simpplr tenant is hosted in. Choose app for the United States.
+            enum:
+                - app
+                - eu
+                - au
+                - ca
+            order: 1
+            doc_section: '#step-2-find-your-region'
+    credentials:
+        client_id:
+            type: string
+            title: Client ID
+            description: The Client ID of your Simpplr client application.
+            pattern: '^\S+$'
+            example: 7f3a91c2****************************e85b
+            doc_section: '#step-1-create-a-client-application'
+        client_secret:
+            type: string
+            title: Client Secret
+            description: The Client Secret of your Simpplr client application.
+            pattern: '^\S+$'
+            example: b41d7e60********************************************9af2
+            secret: true
+            doc_section: '#step-1-create-a-client-application'
 
 simpro:
     display_name: Simpro
