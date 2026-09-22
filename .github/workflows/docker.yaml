@@ -57,30 +57,69 @@ jobs:
 
             - name: Build the docker-compose stack
               if: needs.should-run.outputs.should_skip != 'true'
-              run: docker compose up -d
+              run: |
+                  set -euo pipefail
+                  docker compose config --quiet
+                  docker compose up -d
 
-            - name: Sleep
-              if: needs.should-run.outputs.should_skip != 'true'
-              uses: jakejarvis/wait-action@master
-              with:
-                  time: '30s'
-
-            - name: Verify containers
+            - name: Verify database health and server readiness
               if: needs.should-run.outputs.should_skip != 'true'
               run: |
-                  CONTAINER_NAME=nango-server
-                  SERVER=$(docker ps -q -f status=running -f name=^/${CONTAINER_NAME}$)
-                  if [ ! "${SERVER}" ]; then
-                    echo "Server container doesn't exist"
-                    docker compose logs --no-color
+                  set -euo pipefail
+
+                  for attempt in {1..30}; do
+                    db_container_id="$(docker compose ps -q nango-db)"
+                    if [ -n "$db_container_id" ] \
+                        && docker compose ps --status running --services | grep -qx 'nango-db' \
+                        && docker inspect --format '{{.State.Health.Status}}' "$db_container_id" | grep -qx 'healthy'; then
+                      break
+                    fi
+
+                    if [ "$attempt" -eq 30 ]; then
+                      echo "PostgreSQL did not become healthy"
+                      docker compose ps
+                      docker compose logs --no-color nango-db
+                      exit 1
+                    fi
+
+                    sleep 2
+                  done
+
+                  redis_container_id="$(docker compose ps -q nango-redis)"
+                  if [ -z "$redis_container_id" ] \
+                      || ! docker inspect --format '{{.State.Health.Status}}' "$redis_container_id" | grep -qx 'healthy'; then
+                    echo "Redis did not become healthy"
+                    docker compose ps
+                    docker compose logs --no-color nango-redis
                     exit 1
                   fi
 
-                  CONTAINER_NAME=nango-db
-                  DB=$(docker ps -q -f status=running -f name=^/${CONTAINER_NAME}$)
-                  if [ ! "${DB}" ]; then
-                    echo "DB container doesn't exist"
-                    docker compose logs --no-color
-                    exit 1
-                  fi
+                  for attempt in {1..30}; do
+                    if curl --fail --silent --show-error http://localhost:3003/ready; then
+                      echo
+                      break
+                    fi
+
+                    if [ "$attempt" -eq 30 ]; then
+                      echo "Nango server did not become ready"
+                      docker compose ps
+                      docker compose logs --no-color nango-db nango-server
+                      exit 1
+                    fi
+
+                    sleep 2
+                  done
+
+                  curl --fail --silent --show-error http://localhost:3003/health
+                  echo
               shell: bash
+
+            - name: Collect Docker diagnostics
+              if: failure() && needs.should-run.outputs.should_skip != 'true'
+              run: |
+                  docker compose ps
+                  docker compose logs --no-color
+
+            - name: Tear down Docker Compose stack
+              if: always() && needs.should-run.outputs.should_skip != 'true'
+              run: docker compose down --volumes --remove-orphans

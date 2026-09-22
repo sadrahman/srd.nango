@@ -12,6 +12,7 @@
         "format": "prettier --config .prettierrc \"./**/*.{ts,tsx}\" --write",
         "format:check": "prettier --config .prettierrc \"./**/*.{ts,tsx}\" --check",
         "format:watch": "onchange './**/*.{ts,tsx}' -- prettier --write {{changed}}",
+        "agentic:check": "node scripts/agentic-check.mjs",
         "lint": "oxlint -c .oxlintrc.json",
         "lint:fix": "oxlint -c .oxlintrc.json --fix",
         "ts-build": "tsc -b tsconfig.build.json",

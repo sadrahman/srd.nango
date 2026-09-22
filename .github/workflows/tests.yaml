@@ -67,6 +67,9 @@ jobs:
             - run: npm ci
               if: needs.should-run.outputs.should_skip != 'true'
 
+            - run: npm run agentic:check
+              if: needs.should-run.outputs.should_skip != 'true'
+
             - run: npm run ts-build -- --noCheck
               if: needs.should-run.outputs.should_skip != 'true'
 
